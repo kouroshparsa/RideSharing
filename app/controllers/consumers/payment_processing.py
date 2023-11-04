@@ -3,9 +3,8 @@ The purpose of this module is to charge the riders for the trip
 If the operation fails, the payment request will be passed to a "RETRY_TOPIC"
 """
 import os
-from kafka import KafkaConsumer
 import json
-from datetime import datetime
+from kafka import KafkaConsumer
 from app import logger
 from app.models.model import Payment
 from app.dto.payment import RiderPayment
@@ -25,7 +24,8 @@ consumer = KafkaConsumer(TOPIC_NAME, bootstrap_servers=[KAFKA_SERVER],
                          group_id='g1')
 
 def charge_payment_gateway(rider_id: int, amount: float):
-    pass
+    """ payment gateway """
+    print(f"Charged rider:{rider_id} ${amount}")
 
 def save_to_db(rider_payment: RiderPayment):
     new_driver = Payment(rider_id=rider_payment.rider_id,
@@ -35,6 +35,7 @@ def save_to_db(rider_payment: RiderPayment):
     session.commit()
 
 def main():
+    """ picks up tasks to consume """
     try:
         consumer.subscribe(topics=[TOPIC_NAME])
         while True:
@@ -48,8 +49,9 @@ def main():
                     logger.info("Received a payment task from Kafka")
                     rider_payment = RiderPayment.model_validate(rec)
                     try:
-                        charge_payment_gateway(rider_payment)
-                    except Exception:
+                        charge_payment_gateway(rider_payment.rider_id, rider_payment.amount)
+                    except Exception as ex:
+                        logger.error(ex)
                         failed_payment_processing.resend_rider_payment(rider_payment)
                         continue
                     
@@ -62,4 +64,4 @@ def main():
             consumer.close() # autocommit=True by default so it will update the offset
 
 if __name__ == '__main__':
-     main()
+    main()

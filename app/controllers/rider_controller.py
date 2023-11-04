@@ -2,21 +2,23 @@
 This module has the controllers used from riders' app
 """
 import os
+from fastapi import APIRouter
+from fastapi import HTTPException, Depends
+import redis
 from app.models.model import Driver
 from app.database import SessionLocal
 from app.controllers import cost_calculator
 from app.controllers.auth_controller import get_current_user
-from fastapi import HTTPException, Depends
 from app.utils import geo_helper
 from app.dto.driver import DriverStatus
 from app.dto.trip import TripCandidate, Trip, VehicleType, TripStatus
-from fastapi import APIRouter
-import redis
+
 router = APIRouter()
 
 session = SessionLocal()
 
-redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"), decode_responses=True)
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"),
+                           port=os.getenv("REDIS_PORT"), decode_responses=True)
 
 @router.get("/trip_candidates")
 async def get_trip_candidates(trip: Trip,
@@ -74,7 +76,7 @@ async def book_driver(booking_id: str,
     trip_dict = redis_client.get(booking_id)
     if trip_dict is None:
         raise HTTPException(status_code=404, detail="The booking request is not found.")
-    
+
     trip_dict['booking_id'] = booking_id
     trip: Trip = Trip.model_validate(trip_dict)
     update_dirver_requests(trip.driver_id, trip)

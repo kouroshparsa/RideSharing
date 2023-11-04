@@ -1,10 +1,10 @@
+"""
+This module specified the database model
+"""
 # coding: utf-8
-from sqlalchemy import ARRAY, Boolean, CHAR, Column,\
-    Date, DateTime, Enum, ForeignKey, Index, Integer,\
-    LargeBinary, Numeric, SmallInteger, Table, Text, text
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Numeric, Text, text,\
+    Date, DateTime, ForeignKey, Integer
+
 from geoalchemy2 import Geography
 
 from app.database import Base
@@ -12,6 +12,7 @@ metadata = Base.metadata
 
 
 class Driver(Base):
+    """ registered drivers """
     __tablename__ = 'driver'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('actor_actor_id_seq'::regclass)"))
@@ -27,6 +28,7 @@ class Driver(Base):
     rating = Column(Numeric(3, 1), nullable=False)
 
 class Rider(Base):
+    """ registered riders with verified payment method """
     __tablename__ = 'rider'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('actor_actor_id_seq'::regclass)"))
@@ -39,6 +41,7 @@ class Rider(Base):
 
 
 class Payment(Base):
+    """ patments of riders including taxes """
     __tablename__ = 'payment'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('language_language_id_seq'::regclass)"))
@@ -47,6 +50,7 @@ class Payment(Base):
     payment_date = Column(DateTime(True), nullable=False, server_default=text("now()"))
 
 class Earning(Base):
+    """ earnings of drivers """
     __tablename__ = 'earning'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('language_language_id_seq'::regclass)"))
@@ -56,15 +60,18 @@ class Earning(Base):
 
 
 class FailedPayment(Base):
+    """ recording of failed payment which were already re-tried """
     __tablename__ = 'failed_payment'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('language_language_id_seq'::regclass)"))
     rider_id = Column(ForeignKey('rider.id', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False, index=True)
     amount = Column(Numeric(5, 2), nullable=False)
     payment_date = Column(DateTime(True), nullable=False, server_default=text("now()"))
+    message = Column(Text, nullable=False)
 
 
 class Trip(Base):
+    """ recording of trips where a rider was picked up """
     __tablename__ = 'trip'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('language_language_id_seq'::regclass)"))

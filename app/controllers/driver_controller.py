@@ -3,7 +3,7 @@ This module has the controllers used from drivers' app
 """
 import os
 from datetime import datetime
-from app.models.model import Rider, Driver
+from app.models.model import Driver
 from app.database import SessionLocal
 from app.controllers.auth_controller import get_current_user
 from app.dto.driver import Location
@@ -14,12 +14,14 @@ from fastapi import APIRouter
 import redis
 
 router = APIRouter()
-redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"), decode_responses=True)
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"),
+                           port=os.getenv("REDIS_PORT"), decode_responses=True)
 session = SessionLocal()
 
 
 @router.get("/driver_requests")
 async def get_driver_requests(user: dict = Depends(get_current_user)):
+    """ drivers call this to get their requests """
     driver_id = user["id"]
     reqs = redis_client.get(str(driver_id))
     if reqs is None:
@@ -30,7 +32,7 @@ async def get_driver_requests(user: dict = Depends(get_current_user)):
 @router.post("/accept_booking/{booking_id}")
 async def accept_booking(booking_id: str,
                       user: dict = Depends(get_current_user)):
-
+    """ drivers call this to accept a booking """
     booking = redis_client.get(booking_id)
     trip: Trip = Trip.model_validate(booking)
     trip.status = TripStatus.Accepted
@@ -44,6 +46,7 @@ async def accept_booking(booking_id: str,
 @router.post("/reject_booking/{booking_id}")
 async def reject_booking(booking_id: str,
                       user: dict = Depends(get_current_user)):
+    """ drivers call this to reject a booking """
     driver_id = user["id"]
     reqs = redis_client.get(str(driver_id))
     reqs = [req for req in reqs if req["booking_id"] != booking_id]
@@ -53,7 +56,7 @@ async def reject_booking(booking_id: str,
 @router.patch("/pickedup/{driver_id}")
 async def pickedup(driver_id: int,
                       user: dict = Depends(get_current_user)):
-    """ 
+    """
     update booking status on redis
     update driver status in db
     trigger payment processing
@@ -89,5 +92,5 @@ async def pickedup(driver_id: int,
 async def update_driver_location(driver_id: int,
                                  location: Location,
                                  user: dict = Depends(get_current_user)):
-
+    """ drivers continuously send their location here """
     location_monitoring.update_location(driver_id, location)

@@ -6,7 +6,7 @@ from app import logger
 
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
-def get_coord_from_address(address):
+def get_coord_from_address(address: str):
     """
     returns a dict with longitude and latitude in degrees
     """
@@ -17,20 +17,20 @@ def get_coord_from_address(address):
     }
 
     # Sending a request to Google Geocoding API
-    response = requests.get(API_URL, params=params)
+    response = requests.get(API_URL, params=params, timeout=2)# timeout is in seconds
     data = response.json()
 
     # Extracting latitude and longitude if the request was successful
     if data['status'] == 'OK':
         loc = data['results'][0]['geometry']['location']
         return {"longitude": loc["lng"], "latitude": loc["lat"]}
-    
+
     if 'error_message' in data:
         logger.error(data['error_message'])
     return None
 
 
-def get_driving_distance(origin, destination):
+def get_driving_distance(origin: str, destination: str):
     """
     Latitude,Longitude
     returns driving distance in meters
@@ -43,11 +43,13 @@ def get_driving_distance(origin, destination):
     }
 
     # Sending a request to Google Geocoding API
-    response = requests.get(API_URL, params=params)
+    response = requests.get(API_URL, params=params, timeout=2)# timeout is in seconds
     data = response.json()
 
     if data['status'] == 'OK':
-        if len(data['rows']) > 0 and len(data['rows'][0]['elements']) > 0 and 'distance' in data['rows'][0]['elements'][0]:
+        if len(data['rows']) > 0 and \
+            len(data['rows'][0]['elements']) > 0 and \
+            'distance' in data['rows'][0]['elements'][0]:
             return data['rows'][0]['elements'][0]['distance']['value']
     
     if 'error_message' in data:

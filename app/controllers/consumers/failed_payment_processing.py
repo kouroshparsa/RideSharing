@@ -3,14 +3,13 @@ The purpose of this module is to charge the riders for the trip
 If the operation fails, the payment request will be passed to a "RETRY_TOPIC"
 """
 import os
-from kafka import KafkaConsumer
 import json
-from datetime import datetime
+from kafka import KafkaConsumer
 from app import logger
-from app.models.model import Payment
+from app.models.model import FailedPayment
 from app.dto.payment import RiderPayment
 from app.database import SessionLocal
-from app.controllers.producers import failed_payment_processing
+from app.controllers.consumers import payment_processing, charge_payment_gateway
 
 
 TOPIC_NAME = os.getenv("PAYMENT_PROCESSING_TOPIC")
@@ -24,17 +23,16 @@ consumer = KafkaConsumer(TOPIC_NAME, bootstrap_servers=[KAFKA_SERVER],
                          consumer_timeout_ms=1000,
                          group_id='g1')
 
-def charge_payment_gateway(rider_id: int, amount: float):
-    pass
-
-def save_to_db(rider_payment: RiderPayment):
-    new_driver = Payment(rider_id=rider_payment.rider_id,
+def record_failure(rider_payment: RiderPayment, msg: str):
+    new_driver = FailedPayment(rider_id=rider_payment.rider_id,
                          amount=rider_payment.amount,
-                         payment_date=rider_payment.payment_date)
+                         payment_date=rider_payment.payment_date,
+                         message=msg)
     session.add(new_driver)
     session.commit()
 
 def main():
+    """ picks up tasks to consume """
     try:
         consumer.subscribe(topics=[TOPIC_NAME])
         while True:
@@ -48,12 +46,11 @@ def main():
                     logger.info("Received a payment task from Kafka")
                     rider_payment = RiderPayment.model_validate(rec)
                     try:
-                        charge_payment_gateway(rider_payment)
-                    except Exception:
-                        failed_payment_processing.resend_rider_payment(rider_payment)
-                        continue
-                    
-                    save_to_db(rider_payment)
+                        charge_payment_gateway(rider_payment.rider_id, rider_payment.amount)
+                        payment_processing.save_to_db(rider_payment)
+                    except Exception as ex:
+                        # record it to the database table:
+                        record_failure(rider_payment, str(ex))
 
     except KeyboardInterrupt:
         logger.info('Caught KeyboardInterrupt, stopping.')
@@ -62,4 +59,4 @@ def main():
             consumer.close() # autocommit=True by default so it will update the offset
 
 if __name__ == '__main__':
-     main()
+    main()
