@@ -58,6 +58,15 @@ async def get_driver(driver_id: int,
     return {"status": res.status, "status_name": DriverStatus(res.status).name, "location": res.location}
 
 
+def update_dirver_requests(driver_id: int, trip: Trip):
+    driver_reqs = redis_client.get(str(driver_id))
+    if driver_reqs is None:
+        driver_reqs = [trip]
+    else:
+        driver_reqs.append(trip)
+    redis_client.set(str(driver_id), os.getenv("REDIS_EXPIRY"), driver_reqs)
+
+
 @router.patch("/book/{booking_id}")
 async def book_driver(booking_id: str,
                user: dict = Depends(get_current_user)):
@@ -68,14 +77,7 @@ async def book_driver(booking_id: str,
     
     trip_dict['booking_id'] = booking_id
     trip: Trip = Trip.model_validate(trip_dict)
-    trip.status = TripStatus.Pending
-    driver_id = trip.driver_id
-    driver_reqs = redis_client.get(str(driver_id))
-    if driver_reqs is None:
-        driver_reqs = [trip]
-    else:
-        driver_reqs.append(trip)
-    redis_client.set(str(driver_id), os.getenv("REDIS_EXPIRY"), driver_reqs)
+    update_dirver_requests(trip.driver_id, trip)
 
 
 @router.get("/booking/{booking_id}")

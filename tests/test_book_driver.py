@@ -1,4 +1,3 @@
-import httpx
 from fastapi.testclient import TestClient
 from unittest.mock import patch
 from app import create_app
@@ -43,7 +42,8 @@ def test_book_driver_invalid_booking_id(mock_get):
 
 
 @patch('app.controllers.rider_controller.redis_client.get')  # Mock the Redis client
-def test_book_driver(mock_get):
+@patch('app.controllers.rider_controller.update_dirver_requests')
+def test_book_driver(mock_update_dirver_requests, mock_get):
     # Configure the mock to return the expected data
     booking_id = "12345"
     trip = Trip(origin={"longitude": 1, "latitude": 1},
@@ -51,8 +51,9 @@ def test_book_driver(mock_get):
                 origin_address="",
                 destination_address="",
                 price=20.0, status=TripStatus.Pending, booking_id=booking_id)
-    mock_get.return_value = [trip.model_dump(mode="json")]
-
+    # driver_reqs = [{"rider_id": 9, "origin": {"longitude": 1, "latitude": 1}, "destination": {"longitude": 1, "latitude": 1}}]
+    mock_get.return_value = trip.model_dump(mode="json")
+    mock_update_dirver_requests.return_value = None
     # Create a test client using your FastAPI app
     client = TestClient(app)
     app.dependency_overrides[get_current_user] = override_dependency # ignore dependency check
