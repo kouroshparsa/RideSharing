@@ -30,7 +30,6 @@ CREATE TABLE payment (
     amount DECIMAL NOT NULL,
 	payment_date TIMESTAMP NOT NULL
 );
-
 ALTER TABLE payment
 	ADD column rider_id INT REFERENCES rider(id);
 
@@ -39,16 +38,15 @@ CREATE TABLE earning (
     amount DECIMAL NOT NULL,
 	earning_date TIMESTAMP NOT NULL SET DEFAULT CURRENT_TIMESTAMP
 );
-
 ALTER TABLE earning
 	ADD column driver_id INT REFERENCES driver(id);
 
 CREATE TABLE failed_payment (
     id SERIAL PRIMARY KEY,
     amount DECIMAL NOT NULL,
-	payment_date TIMESTAMP NOT NULL
+	payment_date TIMESTAMP NOT NULL,
+	message VARCHAR NOT NULL,
 );
-
 ALTER TABLE failed_payment
 	ADD column rider_id INT REFERENCES rider(id);
 
